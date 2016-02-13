@@ -110,8 +110,6 @@ C     Initialize weights to something random.
       subroutine forward ()
         h = sigmoid(matmul(a,x))
         y = sigmoid(matmul(b,h))
-C       h = matmul(a,x)
-C       y = matmul(b,h)
       end
 
       subroutine cost ( ecost )
@@ -131,7 +129,7 @@ C     compute a numerical approximation of the gradient
         real              delta, aij, bij, ep, en
         integer           i, j
         parameter       ( delta = sqrt(epsilon(1.0)) )
-
+C       Approximate dE/da with central differences.
         do j = 1, size(a,2)
           do i = 1, size(a,1)
             aij = a(i,j)
@@ -143,7 +141,7 @@ C     compute a numerical approximation of the gradient
             a(i,j) = aij
           end do
         end do
-
+C       Approximate dE/db with central differences.
         do j = 1, size(b,2)
           do i = 1, size(b,1)
             bij = b(i,j)
@@ -178,13 +176,15 @@ C     compute dE/db
 C     compute hdelta
           hdelta = 0.0
           do j = 1, nh
-            hdelta(j) = 0.0
-            do i = 1, ny
-              hdelta(j) = hdelta(j)
-     $                  + ydelta(i) * h(j) * ( 1.0 - h(j) ) * b(i,j)
-            end do
+            hdelta(j) = h(j)*(1.0-h(j))*dot_product(ydelta,b(:,j))
+C           hdelta(j) = 0.0
+C           do i = 1, ny
+C             hdelta(j) = hdelta(j)
+C    $                  + ydelta(i) * h(j) * ( 1.0 - h(j) ) * b(i,j)
+C           end do
           end do
 C     compute dE/da
+C       This is a rank-1 update of agrad. Could be optimized with BLAS.
           do j = 1, size(a,2)
             do i = 1, size(a,1)
               agrad(i,j) = agrad(i,j) + hdelta(i) * x(j) ! <<< this is right
