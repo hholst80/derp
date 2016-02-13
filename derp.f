@@ -25,6 +25,7 @@ C     Setup training examples
       integer i, j, iter, niter
       real    ecost
       real    tdelta, t0, t1
+      real    alpha
       parameter ( niter = 100000 )
 
 C     Initialize weights to something random.
@@ -65,6 +66,36 @@ C     Initialize weights to something random.
 
       call printmat('dE/da', agrad)
       call printmat('dE/db', bgrad)
+
+      print*,'=================================================='
+
+      print*, 'Train a xor function to a feed forward neural network'
+
+      call random_number(a)
+      call random_number(b)
+
+      alpha = 5.0
+      iter = 1
+
+      do
+        call cost(ecost)
+        call bpgrad()
+        a = a - alpha*agrad
+        b = b - alpha*bgrad
+
+        if (ecost < 1e-3) exit
+        iter = iter + 1
+      end do
+      print*, 'iter:', iter, 'cost:', ecost
+
+      print*,'=================================================='
+
+      do i = 1, ntrain
+        x = xtrain(:,i)
+        call forward
+        call printmat('x', reshape(x,[1,nx]))
+        call printmat('y', reshape([y],[1,1]))
+      end do
 
       print*,'=================================================='
 
@@ -119,7 +150,7 @@ C     Initialize weights to something random.
         do k = 1, ntrain
           x = xtrain(:,k)
           call forward
-          ecost = ecost + 0.5 * sum((y-ytrain(:,k))**2)
+          ecost = ecost + (0.5 / ntrain) * sum((y-ytrain(:,k))**2)
         end do
       end
 
@@ -166,6 +197,7 @@ C     compute gradient with backpropagation NO UPDATE
           call forward
           do i = 1, ny
             ydelta(i) = ( y(i) - ytrain(i,k) ) * y(i) * ( 1.0 - y(i) )
+     $                * (1.0 / ntrain)
           end do
 C     compute dE/db
           do j = 1, size(b,2)
