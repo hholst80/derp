@@ -74,15 +74,18 @@ C     Initialize weights to something random.
       call random_number(a)
       call random_number(b)
 
-      alpha = 5.0
+      alpha = 2.0
       iter = 1
 
       do
         call cost(ecost)
-        call bpgrad()
+C       call bpgrad()
+        call ngrad()
         a = a - alpha*agrad
         b = b - alpha*bgrad
 
+        if (mod(iter, 1000) == 0) print*, 'iter:', iter,
+     $                                    'cost:', ecost
         if (ecost < 1e-3) exit
         iter = iter + 1
       end do
@@ -138,9 +141,24 @@ C     Initialize weights to something random.
         sigmoid = 1.0 / ( 1.0 + exp(-x) )
       end
 
+      subroutine bnorm ( x )
+        real        x(:), xmean, xvar, eps
+        integer     m
+        parameter ( eps = 100.0 * epsilon(1.0) )
+        m = size(x)
+        xmean = sum(x) / m
+        xvar = sum( ( x - xmean )**2 ) / m
+        x = ( x - xmean ) / sqrt(xvar + eps)
+        x = 0.8*sqrt(xvar)*x + 3.0*xmean
+      end
+
       subroutine forward ()
-        h = sigmoid(matmul(a,x))
-        y = sigmoid(matmul(b,h))
+        h = matmul(a,x)
+        call bnorm(h)
+        h = sigmoid(h)
+        y = matmul(b,h)
+        call bnorm(y)
+        y = sigmoid(y)
       end
 
       subroutine cost ( ecost )
